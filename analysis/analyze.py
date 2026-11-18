@@ -65,13 +65,20 @@ def experiments(raw: Path) -> dict[str, list[tuple[Path, dict]]]:
     return out
 
 
-def container_cpu(run: Path, pattern: str) -> tuple[float, float]:
-    """Средняя и максимальная загрузка CPU контейнеров по шаблону имени (% одного ядра)."""
+def container_cpu(run: Path, pattern: str, skip_start_s: float = 5.0) -> tuple[float, float]:
+    """Средняя и максимальная загрузка CPU контейнеров по шаблону имени (% одного ядра).
+
+    Первые skip_start_s секунд жизни каждого контейнера отбрасываются: первый замер
+    `docker stats` захватывает запуск интерпретатора и импорт библиотек, а не работу.
+    """
     f = run / "docker_stats.csv"
     if not f.exists():
         return float("nan"), float("nan")
     df = pd.read_csv(f)
     df = df[df["container"].str.contains(pattern, regex=True)]
+    if not df.empty:
+        first = df.groupby("container")["t_unix"].transform("min")
+        df = df[df["t_unix"] - first >= skip_start_s]
     if df.empty:
         return float("nan"), float("nan")
     per_t = df.groupby("t_unix")["cpu_percent"].sum()
@@ -105,6 +112,7 @@ def load_run_row(run: Path, m: dict) -> dict | None:
         "gen_cpu_max_frac": load_max / (100 * float(res["LOAD_CPUS"])),
         "sut_cpu_cores": sut_mean / 100,
     }
+    row.update(prometheus_row(run, m))
     lc = run / "locust_stats.csv"
     if lc.exists():
         ls = pd.read_csv(lc)
@@ -112,6 +120,27 @@ def load_run_row(run: Path, m: dict) -> dict | None:
         if len(r):
             row["locust_p95_ms"] = float(r.iloc[0]["95%"])
     return row
+
+
+def prometheus_row(run: Path, m: dict) -> dict:
+    """Серверная сторона из экспорта Prometheus: медиана по времени прогона для сервиса выдачи."""
+    f = run / "prometheus.json"
+    if not f.exists():
+        return {}
+    pj = json.loads(f.read_text(encoding="utf-8"))
+    inst = "app:8000" if m["params"].get("arch") == "mono" else "delivery:8000"
+    out = {}
+    for key, col in (("auth_check_p50_s", "auth_p50_ms"), ("auth_check_p95_s", "auth_p95_ms"),
+                     ("server_p50_s", "server_p50_ms"), ("server_p95_s", "server_p95_ms")):
+        series = pj.get(key)
+        if not isinstance(series, list):
+            continue
+        for sr in series:
+            if sr["metric"].get("instance") == inst:
+                vals = [float(v[1]) for v in sr["values"] if v[1] not in ("NaN", "+Inf")]
+                if vals:
+                    out[col] = 1000 * float(np.median(vals))
+    return out
 
 
 def qoe_from_segments(seg: pd.DataFrame) -> dict:
@@ -231,9 +260,16 @@ def summarize_groups(df: pd.DataFrame, keys: list[str], metric: str) -> pd.DataF
 def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
     rep.h("E1. Архитектура сервера под нагрузкой (монолит vs микросервисы)")
     for metric, title in (("p95_ms", "p95 задержки сегмента, мс"), ("p50_ms", "p50 задержки сегмента, мс"),
-                          ("rps", "пропускная способность, запросов/с"), ("sut_cpu_cores", "CPU SUT, ядер")):
+                          ("p99_ms", "p99 задержки сегмента, мс"),
+                          ("rps", "пропускная способность, запросов/с"), ("error_rate", "доля ошибок"),
+                          ("sut_cpu_cores", "CPU SUT, ядер")):
         rep.p(f"**{title}** (единица — прогон):")
         rep.table(summarize_groups(df, ["users", "arch"], metric))
+    diag = [c for c in ("server_p50_ms", "server_p95_ms", "auth_p50_ms", "auth_p95_ms") if c in df.columns]
+    if diag:
+        rep.p("**Разложение задержки на стороне сервера** (Prometheus, медиана по прогонам, мс): "
+              "server — обработчик выдачи сегмента целиком, auth — проверка токена внутри него.")
+        rep.table(df.groupby(["users", "arch"])[diag].median().reset_index())
     rows, pvals = [], []
     for users, g in df.groupby("users"):
         a = g[g["arch"] == "mono"]["p95_ms"]

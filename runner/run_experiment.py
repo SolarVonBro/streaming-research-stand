@@ -102,6 +102,20 @@ def git_info() -> dict:
             "dirty": bool(g("status", "--porcelain", "--untracked-files=no"))}
 
 
+def applied_limits() -> dict:
+    """Лимиты, реально применённые Docker к работающим контейнерам стенда (а не заявленные)."""
+    ids = sh(["docker", "ps", "-q", "--filter", "label=com.docker.compose.project=stand"], check=False).stdout.split()
+    if not ids:
+        return {}
+    out = {}
+    p = sh(["docker", "inspect", "--format",
+            "{{.Name}} {{.HostConfig.NanoCpus}} {{.HostConfig.Memory}}", *ids], check=False)
+    for line in p.stdout.splitlines():
+        name, nano, mem = line.split()
+        out[name.lstrip("/")] = {"cpus": int(nano) / 1e9, "memory_mb": int(mem) // 2**20}
+    return out
+
+
 def images_info(services: list[str]) -> dict:
     """Какие образы реально использованы: тег из compose + ID и RepoDigest локального образа."""
     cfg = json.loads(sh(COMPOSE + ["--profile", "mono", "--profile", "micro", "--profile", "monitoring",
@@ -155,7 +169,10 @@ def export_prometheus(start: float, end: float, out: Path) -> None:
         "container_cpu_cores": 'sum by (name) (rate(container_cpu_usage_seconds_total{name=~"stand-.+"}[10s]))',
         "container_mem_bytes": 'max by (name) (container_memory_working_set_bytes{name=~"stand-.+"})',
         "server_rps": 'sum by (instance, handler) (rate(http_requests_total[10s]))',
-        "server_p95_s": 'histogram_quantile(0.95, sum by (instance, le) (rate(http_request_duration_seconds_bucket[30s])))',
+        "server_p50_s": 'histogram_quantile(0.5, sum by (instance, le) (rate(http_request_duration_highr_seconds_bucket[30s])))',
+        "server_p95_s": 'histogram_quantile(0.95, sum by (instance, le) (rate(http_request_duration_highr_seconds_bucket[30s])))',
+        "auth_check_p50_s": 'histogram_quantile(0.5, sum by (instance, le) (rate(stand_auth_check_seconds_bucket[30s])))',
+        "auth_check_p95_s": 'histogram_quantile(0.95, sum by (instance, le) (rate(stand_auth_check_seconds_bucket[30s])))',
     }
     result = {"start": start, "end": end}
     for key, q in queries.items():
@@ -281,6 +298,7 @@ def run_one(cfg: dict, item: dict, exp_dir: Path, common: dict, config_path: Pat
     # Пересоздаём SUT и Redis перед каждым прогоном: нет переноса кэшей, сессий и утечек между прогонами
     start_sut(arch, env, log, recreate=cfg.get("recreate_sut", True))
     time.sleep(cfg.get("settle_seconds", 3))
+    manifest["applied_limits"] = applied_limits()
     sampler = StatsSampler(run_dir / "docker_stats.csv")
     sampler.start()
     t_start = time.time()

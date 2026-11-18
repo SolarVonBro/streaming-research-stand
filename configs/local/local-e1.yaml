@@ -1,0 +1,27 @@
+# Проверка E1 на второй машине: рабочий ПК, Docker Desktop (WSL 2) с 1 CPU и 2 ГБ.
+# Все лимиты и нагрузка уменьшены в 4 раза относительно раннера CI (4 vCPU) — ответ на вопрос
+# «что будет на машине с меньшим числом ядер». 5 повторений, чтобы уложиться в ~20 мин.
+name: local-e1
+kind: load
+seed: 20261122
+factors:
+  arch: [mono, micro]
+  users: [75, 225]
+repetitions: 5
+warmup_seconds: 15
+duration_seconds: 30
+randomize_order: true
+recreate_sut: true
+monitoring: false
+load: {level: 1, pacing_seconds: 4.0}
+resources:
+  EDGE_CPUS: "0.0625"
+  APP_CPUS: "0.4375"
+  APP_WORKERS: "2"
+  AUTH_CPUS: "0.125"
+  CATALOG_CPUS: "0.0375"
+  DELIVERY_CPUS: "0.1875"
+  TELEMETRY_CPUS: "0.0875"
+  REDIS_CPUS: "0.125"
+  LOAD_CPUS: "0.25"
+  PLAYERS_CPUS: "0.125"

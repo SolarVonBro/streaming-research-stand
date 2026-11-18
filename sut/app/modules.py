@@ -13,14 +13,21 @@ import hashlib
 import hmac
 import json
 import secrets
+import time
 
 import httpx
 import redis.asyncio as aioredis
 from fastapi import APIRouter, HTTPException, Request, Response
+from prometheus_client import Histogram
 
 from . import media, settings
 
 SESSION_TTL_S = 3600
+# Время проверки токена при выдаче сегмента: в монолите — вызов функции и запрос в Redis,
+# в микросервисах — HTTP-вызов сервиса auth. Мелкие корзины, чтобы видеть миллисекунды.
+AUTH_CHECK = Histogram("stand_auth_check_seconds", "Token check duration in delivery",
+                       buckets=(0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03,
+                                0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.5, 1.0))
 
 
 def _sign(sid: str) -> str:
@@ -94,7 +101,10 @@ def delivery_router(auth: LocalAuth | RemoteAuth) -> APIRouter:
 
     @api.get("/media/{video_id}/{level}/{segment}.m4s")
     async def segment(video_id: str, level: int, segment: int, token: str = "") -> Response:
-        if not await auth.check(token):
+        t0 = time.perf_counter()
+        ok = await auth.check(token)
+        AUTH_CHECK.observe(time.perf_counter() - t0)
+        if not ok:
             raise HTTPException(status_code=401)
         body = media.segment_bytes(level, segment) if video_id == media.VIDEO.video_id else None
         if body is None:

@@ -1,0 +1,21 @@
+# Проверка E2 на второй машине (1 CPU): 5 трасс HSDPA, все 4 алгоритма, всё видео.
+name: local-e2
+kind: abr
+seed: 20261118
+factors:
+  network: [hsdpa]
+traces: {hsdpa: data/traces/hsdpa}
+repetitions: 5
+abr: [rate, bola, robustmpc, festive]
+randomize_order: true
+recreate_sut: true
+monitoring: false
+fixed: {arch: mono}
+players: {buffer_max_s: 30, rtt_ms: 80, max_segments: 48}
+resources:
+  EDGE_CPUS: "0.0625"
+  APP_CPUS: "0.4375"
+  APP_WORKERS: "2"
+  REDIS_CPUS: "0.125"
+  LOAD_CPUS: "0.25"
+  PLAYERS_CPUS: "0.25"

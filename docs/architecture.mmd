@@ -1,47 +1,42 @@
-flowchart LR
-  subgraph Stand["docker compose (проект stand)"]
-    direction LR
-    subgraph Gen["Источники воздействия (профиль tools)"]
-      LG["Locust 2.31.5<br/>«зрители», constant_pacing 4 с"]
-      PL["players<br/>эмулятор DASH-плееров:<br/>канал по трассе + ABR<br/>rate · BOLA · RobustMPC · FESTIVE"]
+flowchart TB
+  CFG["configs/*.yaml<br/>факторы, уровни, повторения, сид"] --> RUN["runner/run_experiment.py<br/>план, рандомизация, пересоздание SUT,<br/>docker stats, manifest.json"]
+  DATA[("data/<br/>размеры сегментов Pensieve,<br/>трассы stable · hsdpa · lte, SHA256SUMS")]
+
+  subgraph STAND["docker compose, проект stand"]
+    direction TB
+    subgraph GEN["Источники воздействия (профиль tools)"]
+      direction LR
+      LG["Locust 2.31.5<br/>«зрители», темп 4 с"]
+      PL["players<br/>канал по трассе + ABR:<br/>rate, BOLA, RobustMPC, FESTIVE"]
     end
-    subgraph SUT["Объект исследования (профиль mono ИЛИ micro)"]
-      direction TB
-      subgraph Mono["mono: модульный монолит"]
-        EM["nginx 1.27.3<br/>edge"] --> APP["streamhub ROLE=mono<br/>2 воркера uvicorn<br/>auth+catalog+delivery+telemetry"]
+    subgraph SUT["Объект исследования: профиль mono ИЛИ micro"]
+      direction LR
+      subgraph MONO["mono — модульный монолит"]
+        direction TB
+        EM["nginx 1.27.3 edge"] --> APP["streamhub ROLE=mono<br/>auth + catalog + delivery + telemetry<br/>1,75 CPU, 512 МБ"]
       end
-      subgraph Micro["micro: микросервисы"]
-        GW["nginx 1.27.3<br/>API-шлюз"] --> AU["auth"]
-        GW --> CA["catalog"]
-        GW --> DE["delivery"]
-        GW --> TE["telemetry"]
-        DE -->|"HTTP /internal/verify"| AU
+      subgraph MICRO["micro — микросервисы"]
+        direction TB
+        GW["nginx 1.27.3 API-шлюз"] --> SVC["auth · catalog · delivery · telemetry<br/>сумма 1,75 CPU, 512 МБ"]
+        SVC -->|"delivery → auth:<br/>HTTP /internal/verify"| SVC
       end
-      RD[("Redis 7.4.1<br/>сессии, события")]
+      RD[("Redis 7.4.1")]
+      MONO --> RD
+      MICRO --> RD
     end
-    subgraph Mon["Наблюдение (профиль monitoring)"]
-      PR["Prometheus 2.54.1"]
-      CAD["cAdvisor 0.49.1"]
+    subgraph MON["Наблюдение (профиль monitoring)"]
+      direction LR
+      PR["Prometheus 2.54.1"] --> CAD["cAdvisor 0.49.1"]
     end
-    LG -->|HTTP| EM
-    LG -->|HTTP| GW
-    PL -->|HTTP| EM
-    PL -->|HTTP| GW
-    APP --> RD
-    AU --> RD
-    CA --> RD
-    TE --> RD
-    PR -->|scrape /metrics| APP
-    PR -->|scrape /metrics| DE
-    PR -->|scrape| CAD
+    GEN -->|HTTP| SUT
+    PR -.->|"/metrics"| SUT
   end
-  DATA[("data/<br/>размеры сегментов Pensieve,<br/>трассы stable · hsdpa · lte,<br/>SHA256SUMS")] --> PL
-  DATA --> APP
-  CFG["configs/*.yaml<br/>факторы, уровни, повторения, сид"] --> RUN["runner/run_experiment.py<br/>план, рандомизация, пересоздание SUT,<br/>docker stats, манифест"]
-  RUN -->|"docker compose up/run"| Stand
-  LG -->|"CSV, requests.csv.gz"| RAW[("results/raw/&lt;эксперимент&gt;/&lt;прогон&gt;/<br/>сырые данные + manifest.json")]
-  PL -->|"segments_*.csv, session_*.json"| RAW
-  PR -->|"экспорт query_range"| RAW
+
+  RUN -->|"docker compose up / run"| STAND
+  DATA --> PL
+  DATA --> SUT
+  GEN -->|"requests.csv.gz, segments_*.csv"| RAW[("results/raw/&lt;эксперимент&gt;/&lt;прогон&gt;/<br/>сырые данные + manifest.json")]
   RUN --> RAW
-  RAW --> AN["analysis/analyze.py<br/>медианы, bootstrap-ДИ,<br/>Манн–Уитни, Фридман, Уилкоксон,<br/>Холм, δ Клиффа"]
+  PR -->|"экспорт окна прогона"| RAW
+  RAW --> AN["analysis/analyze.py<br/>медианы, bootstrap-ДИ, Манн–Уитни,<br/>Фридман, Уилкоксон, Холм, δ Клиффа"]
   AN --> REP["results/processed/summary.md<br/>results/figures/*.png"]

@@ -16,18 +16,26 @@ x-app: &app
     redis: { condition: service_healthy }
   healthcheck:
     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
-    interval: 2s
+    # Часто — только при старте (для --wait), затем раз в 30 с: каждая проверка запускает
+    # процесс внутри контейнера и тратит его квоту CPU (см. отчёт ПР4, раздел «Отладка»).
+    interval: 30s
+    start_period: 60s
+    start_interval: 1s
     timeout: 3s
-    retries: 30
+    retries: 3
 
 x-edge: &edge
   image: nginx:1.27.3-alpine@sha256:814a8e88df978ade80e584cc5b333144b9372a8e3c98872d07137dbf3b44d0e4
   ports: ["127.0.0.1:${EDGE_PORT:-8080}:8080"]
   healthcheck:
     test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
-    interval: 2s
+    # Часто — только при старте (для --wait), затем раз в 30 с: каждая проверка запускает
+    # процесс внутри контейнера и тратит его квоту CPU (см. отчёт ПР4, раздел «Отладка»).
+    interval: 30s
+    start_period: 60s
+    start_interval: 1s
     timeout: 3s
-    retries: 30
+    retries: 3
   deploy:
     resources:
       limits: { cpus: "${EDGE_CPUS:-0.25}", memory: 64m }
@@ -38,9 +46,11 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
+      interval: 30s
+      start_period: 30s
+      start_interval: 1s
       timeout: 3s
-      retries: 30
+      retries: 3
     deploy:
       resources:
         limits: { cpus: "${REDIS_CPUS:-0.5}", memory: 256m }
