@@ -6,8 +6,10 @@
 name: stand
 
 x-app: &app
-  build: ./sut
+  # Образ собирает только сервис app (ниже); остальные роли берут готовый образ, иначе
+  # Docker собирает один и тот же тег параллельно пять раз («image already exists»).
   image: streamhub:local
+  pull_policy: never
   volumes: ["./data:/data:ro"]
   environment: &app-env
     REDIS_URL: redis://redis:6379/0
@@ -21,7 +23,7 @@ x-app: &app
     interval: 30s
     start_period: 60s
     start_interval: 1s
-    timeout: 3s
+    timeout: 10s
     retries: 3
 
 x-edge: &edge
@@ -34,11 +36,11 @@ x-edge: &edge
     interval: 30s
     start_period: 60s
     start_interval: 1s
-    timeout: 3s
+    timeout: 10s
     retries: 3
   deploy:
     resources:
-      limits: { cpus: "${EDGE_CPUS:-0.25}", memory: 64m }
+      limits: { cpus: "${EDGE_CPUS:-0.5}", memory: 256m }
 
 services:
   redis:
@@ -58,6 +60,8 @@ services:
   # ---------- вариант 1: модульный монолит ----------
   app:
     <<: *app
+    build: ./sut
+    pull_policy: build
     profiles: ["mono"]
     environment:
       <<: *app-env

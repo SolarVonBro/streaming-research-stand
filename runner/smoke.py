@@ -11,7 +11,7 @@ import sys
 import time
 
 import httpx
-from run_experiment import COMPOSE, DEFAULT_RESOURCES, sh, start_sut  # noqa: E402
+from run_experiment import COMPOSE, resources, sh, start_sut  # noqa: E402
 
 BASE = "http://127.0.0.1:8080"
 
@@ -68,7 +68,7 @@ def main() -> None:
     ap.add_argument("--arch", choices=["mono", "micro", "both"], default="both")
     ap.add_argument("--no-monitoring", action="store_true")
     a = ap.parse_args()
-    env = dict(DEFAULT_RESOURCES)
+    env = resources({})  # значения по умолчанию, переопределяемые переменными окружения
     sh(COMPOSE + ["--profile", "mono", "--profile", "micro", "--profile", "tools", "build"], env=env, timeout=1200)
     ok = True
     if not a.no_monitoring:

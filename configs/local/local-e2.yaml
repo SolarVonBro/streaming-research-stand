@@ -13,7 +13,7 @@ monitoring: false
 fixed: {arch: mono}
 players: {buffer_max_s: 30, rtt_ms: 80, max_segments: 48}
 resources:
-  EDGE_CPUS: "0.0625"
+  EDGE_CPUS: "0.125"
   APP_CPUS: "0.4375"
   APP_WORKERS: "2"
   REDIS_CPUS: "0.125"

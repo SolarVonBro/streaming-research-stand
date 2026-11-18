@@ -15,7 +15,7 @@ recreate_sut: true
 monitoring: false
 load: {level: 1, pacing_seconds: 4.0}
 resources:
-  EDGE_CPUS: "0.0625"
+  EDGE_CPUS: "0.125"
   APP_CPUS: "0.4375"
   APP_WORKERS: "2"
   AUTH_CPUS: "0.125"

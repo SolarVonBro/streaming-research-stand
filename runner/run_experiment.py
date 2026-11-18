@@ -39,7 +39,7 @@ ARCH_SERVICES = {
     "micro": ["redis", "auth", "catalog", "delivery", "telemetry", "edge-micro"],
 }
 DEFAULT_RESOURCES = {  # значения по умолчанию из docker-compose.yml
-    "EDGE_CPUS": "0.25", "APP_CPUS": "1.75", "APP_WORKERS": "2", "AUTH_CPUS": "0.5",
+    "EDGE_CPUS": "0.5", "APP_CPUS": "1.75", "APP_WORKERS": "2", "AUTH_CPUS": "0.5",
     "CATALOG_CPUS": "0.15", "DELIVERY_CPUS": "0.75", "TELEMETRY_CPUS": "0.35",
     "REDIS_CPUS": "0.5", "LOAD_CPUS": "1.0", "PLAYERS_CPUS": "0.5",
 }
@@ -233,8 +233,15 @@ def label(item: dict) -> str:
 
 # ---------------------------------------------------------------- выполнение прогона
 
-def compose_env(cfg: dict, item: dict) -> dict:
+def resources(cfg: dict) -> dict:
+    """Лимиты контейнеров: значения по умолчанию < раздел resources конфигурации < переменные окружения."""
     env = {**DEFAULT_RESOURCES, **{k: str(v) for k, v in cfg.get("resources", {}).items()}}
+    env.update({k: os.environ[k] for k in DEFAULT_RESOURCES if k in os.environ})
+    return env
+
+
+def compose_env(cfg: dict, item: dict) -> dict:
+    env = resources(cfg)
     env["INJECT_DELAY_MS"] = str(item.get("inject_delay_ms", cfg.get("fixed", {}).get("inject_delay_ms", 0)))
     return env
 
@@ -258,7 +265,7 @@ def locust_cmd(cfg: dict, users: int, seconds: float, rel: str, seed: int, name:
         cmd += ["-e", f"{k}={v}"]
     cmd += ["load", "-f", "/mnt/locust/locustfile.py", "--headless", "-u", str(users), "-r", str(spawn),
             "-t", f"{int(seconds)}s", "--host", "http://edge:8080", "--csv", f"/results/{rel}/locust",
-            "--only-summary", "--stop-timeout", "5", "--loglevel", "WARNING"]
+            "--only-summary", "--stop-timeout", "5", "--loglevel", "WARNING", "--exit-code-on-error", "0"]
     return cmd
 
 
@@ -370,7 +377,7 @@ def main() -> None:
     (exp_dir / "experiment.json").write_text(json.dumps(
         {"config": cfg, "plan": plan, **common, "started_at": utc()}, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    env0 = {**DEFAULT_RESOURCES, **{k: str(v) for k, v in cfg.get("resources", {}).items()}}
+    env0 = resources(cfg)
     sh(COMPOSE + ["--profile", "mono", "--profile", "micro", "--profile", "tools", "build"], env=env0, timeout=1200)
     if cfg.get("monitoring"):
         sh(COMPOSE + ["--profile", "monitoring", "up", "-d", "prometheus", "cadvisor"], env=env0, timeout=300)

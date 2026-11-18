@@ -2,6 +2,7 @@
 #   make setup        — окружение хоста (uv sync по uv.lock)
 #   make test         — линтер и модульные тесты (без Docker)
 #   make smoke        — поднять оба варианта SUT и проверить контракт и метрики
+#                       (SMOKE_ARGS=--no-monitoring — без Prometheus/cAdvisor)
 #   make experiment   — полный эксперимент: A/A, калибровка, E1, E2, E3 (~6 ч)
 #   make experiment CONFIG=configs/e2-abr.yaml   — один эксперимент
 #   make ci-experiment — сокращённая конфигурация (как в CI, ~10 мин)
@@ -32,7 +33,7 @@ build:
 	docker compose --profile mono --profile micro --profile tools build
 
 smoke:
-	$(RUN) python runner/smoke.py
+	$(RUN) python runner/smoke.py $(SMOKE_ARGS)
 
 pilot:
 	$(RUN) python runner/run_experiment.py configs/pilot-e1.yaml

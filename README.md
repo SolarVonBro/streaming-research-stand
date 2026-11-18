@@ -35,7 +35,7 @@ flowchart LR
 * **Объект исследования (SUT)** — сервис раздачи видео `sut/` (FastAPI). Один и тот же код
   собирается в один процесс (`ROLE=mono`) или в четыре сервиса (`auth`, `catalog`, `delivery`,
   `telemetry`), где выдача сегмента проверяет токен HTTP-вызовом сервиса `auth`. Суммарные лимиты
-  одинаковы: приложение 1,75 CPU и 512 МБ, шлюз nginx 0,25 CPU.
+  одинаковы: приложение 1,75 CPU и 512 МБ, шлюз nginx 0,5 CPU (2 рабочих процесса).
 * **Воздействие:** Locust (`load/locustfile.py`) — «зрители», которые раз в 4 с запрашивают сегмент
   и шлют телеметрию; эмулятор плееров (`players/`) — каждый плеер ограничивает полосу по сетевой
   трассе (как симулятор Pensieve, RTT 80 мс) и выбирает битрейт своим алгоритмом.
@@ -120,7 +120,7 @@ recreate_sut: true         # SUT и Redis пересоздаются перед 
 Пример для Docker Desktop с 2 CPU, все лимиты уменьшены вдвое:
 
 ```bash
-export EDGE_CPUS=0.125 APP_CPUS=0.875 AUTH_CPUS=0.25 CATALOG_CPUS=0.075 DELIVERY_CPUS=0.375 \
+export EDGE_CPUS=0.25 APP_CPUS=0.875 AUTH_CPUS=0.25 CATALOG_CPUS=0.075 DELIVERY_CPUS=0.375 \
        TELEMETRY_CPUS=0.175 REDIS_CPUS=0.25 LOAD_CPUS=0.5 PLAYERS_CPUS=0.25
 make experiment CONFIG=configs/ci/ci-e1.yaml
 ```
