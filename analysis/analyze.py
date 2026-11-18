@@ -540,7 +540,7 @@ def timeline_plot(runs: list[tuple[Path, dict]], fig_dir: Path, name: str = "e2-
     trace_file = ROOT / m["params"]["trace"]
     trace = pd.read_csv(trace_file) if trace_file.exists() else pd.DataFrame({"t_s": [], "mbps": []})
     files = sorted(run.glob("segments_*.csv"))
-    fig, axes = plt.subplots(len(files), 1, figsize=(8, 1.9 * len(files)), sharex=True, squeeze=False)
+    fig, axes = plt.subplots(len(files), 1, figsize=(8, 1.9 * len(files)), sharex=True, sharey=True, squeeze=False)
     for ax, f in zip(axes[:, 0], files, strict=True):
         seg = pd.read_csv(f)
         abr = seg["abr"].iloc[0]
@@ -593,8 +593,15 @@ def analyze_aa_players(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
     save(fig, fig_dir / "aa_e2.png")
 
 
-def analyze_e3(df: pd.DataFrame, bg: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
+def analyze_e3(df: pd.DataFrame, bg: pd.DataFrame, rep: Report, fig_dir: Path, failed: pd.DataFrame | None = None) -> None:
     rep.h("E3. Совместный вопрос: архитектура сервера и QoE зрителей")
+    if failed is not None and len(failed):
+        cnt = failed.groupby(["arch", "abr"]).size().to_dict()
+        rep.p("**Прерванные сессии** (сегмент не загружен за 5 попыток — зритель «ушёл»): "
+              + "; ".join(f"{a}/{b}: {n}" for (a, b), n in cnt.items())
+              + ". В парное сравнение ниже они не входят; это консервативно для гипотезы H3₁, "
+              "так как исключаются худшие сессии.")
+        rep.data["e3_failed"] = {f"{a}/{b}": int(n) for (a, b), n in cnt.items()}
     if not bg.empty:
         rep.p("Фоновая нагрузка (Locust, сегменты), p95 по прогонам:")
         rep.table(summarize_groups(bg, ["arch"], "p95_ms"))
@@ -681,7 +688,12 @@ def main() -> None:
             elif kind == "joint":
                 bg = pd.DataFrame([r for r in (load_run_row(run, m) for run, m in runs) if r])
                 bg.to_csv(processed / f"{name}_background.csv", index=False)
-                analyze_e3(ok, bg, rep, fig_dir)
+                failed = None
+                if "error" in df:
+                    failed = df[df["error"].notna()].merge(
+                        pd.DataFrame([{"run_id": m["run_id"], "arch": m["params"].get("arch")} for _, m in runs]),
+                        on="run_id", how="left", suffixes=("_x", ""))
+                analyze_e3(ok, bg, rep, fig_dir, failed)
             else:
                 analyze_e2(ok, rep, fig_dir, name)
                 timeline_plot(runs, fig_dir, name)

@@ -13,6 +13,17 @@
 Отчёты: [docs/pr3-report.md](docs/pr3-report.md) (проект стенда, анализ статей) и
 [docs/pr4-report.md](docs/pr4-report.md) (реализация, проверка стенда, результаты), а также их PDF-версии в `docs/`.
 
+## Результаты (кратко)
+
+Полный эксперимент выполнен дважды на машинах GitHub Actions (Intel Xeon Platinum 8573C, 4 vCPU, 16 ГБ) и в сокращённом виде на ПК с 1 CPU. Подробно — [docs/pr4-report.md](docs/pr4-report.md), таблицы — [results/processed/summary.md](results/processed/summary.md), графики — `results/figures/`.
+
+| Эксперимент | Главный результат |
+|---|---|
+| Проверка стенда | A/A: p = 1,0, шум p95 11,5 %, MDE 16,7 %; калибровка без нагрузки: внесённые 20,5 мс видны как 20,3 мс [20,1; 20,4]; генератор ≤ 33 % лимита; тренда нет; выводы повторились во втором запуске |
+| E1: монолит vs микросервисы | p95 сегмента: 57 против 187 мс при 300 зрителях (×3,3), 232 мс против 13,5 с при 900 (×58); δ Клиффа = +1, p (Холм) = 0,0004 |
+| E2: алгоритмы ABR | RobustMPC — лучший QoE во всех сетях (+12…+32 % к rate) ценой остановок; BOLA-BASIC — без остановок, но частые переключения; FESTIVE — меньше переключений, ниже битрейт |
+| E3: архитектура → QoE | при перегрузке микросервисов первый байт сегмента приходит через 3–5 с, QoE падает с ≈ 1 до −7…−18 |
+
 ## Архитектура
 
 Диаграмма хранится как код: [docs/architecture.mmd](docs/architecture.mmd).
@@ -81,6 +92,21 @@ make analyze                   # results/processed/summary.md, results/figures/*
 4. Тот же сценарий автоматически выполняется в GitHub Actions на каждый push (`.github/workflows/ci.yml`),
    полный эксперимент — вручную (`experiment.yml`, Actions → experiment → Run workflow).
 
+## Сырые данные и пересчёт без повторения эксперимента
+
+Сырые данные (`results/raw`, `results/repeat/raw`, `results/local/raw`, `results/history`) не хранятся в git, а опубликованы архивами с контрольными суммами в релизе [v1.0.0](https://github.com/SolarVonBro/streaming-research-stand/releases/tag/v1.0.0):
+
+```bash
+sha256sum -c SHA256SUMS                    # проверить скачанные архивы
+tar -xzf raw-main.tar.gz -C results        # основной запуск -> results/raw
+make analyze                               # results/processed и results/figures
+tar -xzf raw-repeat.tar.gz -C results      # повторный запуск -> results/repeat/raw
+uv run python analysis/analyze.py --raw results/repeat/raw --out results/repeat
+uv run python analysis/compare_runs.py results/processed/summary.json     results/repeat/processed/summary.json --labels "запуск 1" "запуск 2" --out results/processed/repeatability.md
+```
+
+Эксперимент выполнен на коммите `435c07c` (калибровка — на `d8e5768`); тег `v1.0.0` отличается от него только анализом, отчётами и калибровкой. Коммит каждого прогона записан в его `manifest.json`.
+
 ## Команды
 
 | Команда | Что делает |
@@ -147,9 +173,11 @@ make experiment CONFIG=configs/ci/ci-e1.yaml
 ├── tools/prepare_data.py     как получены данные (скачивание, проверка SHA-256, конвертация)
 ├── tests/                    модульные тесты эмулятора и анализа
 ├── results/
-│   ├── raw/                  сырые данные (в .gitignore; архив — в GitHub Releases)
-│   ├── processed/            таблицы и summary.md итогового эксперимента
-│   └── figures/              графики
+│   ├── raw/                  сырые данные основного запуска (в .gitignore; архив — в Releases)
+│   ├── processed/, figures/  таблицы, summary.md, repeatability.md, графики основного запуска
+│   ├── repeat/               повторный запуск (processed/, figures/)
+│   ├── local/                проверка на ПК с 1 CPU (processed/, figures/, журналы)
+│   └── history/              ранние версии калибровки (в .gitignore; архив — в Releases)
 └── docs/                     отчёты ПР3 и ПР4 (Markdown и PDF), architecture.mmd
 ```
 

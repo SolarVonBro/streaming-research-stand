@@ -5,5 +5,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
-# сырые данные прогонов: публикуются архивом в GitHub Releases (см. README)
+# сырые данные прогонов: публикуются архивами с SHA-256 в GitHub Releases (см. README)
 results/raw/
+results/*/raw/
+results/history/
