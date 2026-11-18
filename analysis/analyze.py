@@ -131,7 +131,8 @@ def prometheus_row(run: Path, m: dict) -> dict:
     inst = "app:8000" if m["params"].get("arch") == "mono" else "delivery:8000"
     out = {}
     for key, col in (("auth_check_p50_s", "auth_p50_ms"), ("auth_check_p95_s", "auth_p95_ms"),
-                     ("server_p50_s", "server_p50_ms"), ("server_p95_s", "server_p95_ms")):
+                     ("server_p50_s", "server_p50_ms"), ("server_p95_s", "server_p95_ms"),
+                     ("inject_p50_s", "inject_p50_ms")):
         series = pj.get(key)
         if not isinstance(series, list):
             continue
@@ -407,6 +408,9 @@ def analyze_calibration(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
                              "p (M–W)": st.mann_whitney(a, b)}]))
     rep.p("Стенд считается откалиброванным, если 95 % ДИ разности медиан p50 содержит 20 мс "
           "(эффект известен заранее).")
+    if "inject_p50_ms" in df.columns:
+        inj = df[df["inject_delay_ms"] == 20]["inject_p50_ms"]
+        rep.p(f"Фактическая длительность внесённой задержки по серверной гистограмме: медиана {inj.median():.2f} мс.")
     rep.data["calibration"] = {"diff_ms": diff, "ci": [lo, hi]}
     fig, ax = plt.subplots(figsize=(4.5, 3.6))
     boxes(ax, [a.to_numpy(), b.to_numpy()], [0, 1], [C["blue"], C["orange"]], ["0 мс", "+20 мс"])

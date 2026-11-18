@@ -25,6 +25,9 @@ from . import media, settings
 SESSION_TTL_S = 3600
 # Время проверки токена при выдаче сегмента: в монолите — вызов функции и запрос в Redis,
 # в микросервисах — HTTP-вызов сервиса auth. Мелкие корзины, чтобы видеть миллисекунды.
+# Фактическая длительность внесённой задержки (калибровка): измеряется по реальным часам.
+INJECTED = Histogram("stand_injected_delay_seconds", "Actual injected delay in delivery",
+                     buckets=(0.005, 0.01, 0.015, 0.018, 0.019, 0.0195, 0.02, 0.0205, 0.021, 0.022, 0.025, 0.03, 0.05))
 AUTH_CHECK = Histogram("stand_auth_check_seconds", "Token check duration in delivery",
                        buckets=(0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03,
                                 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.5, 1.0))
@@ -110,7 +113,13 @@ def delivery_router(auth: LocalAuth | RemoteAuth) -> APIRouter:
         if body is None:
             raise HTTPException(status_code=404)
         if settings.INJECT_DELAY_MS:
-            await asyncio.sleep(settings.INJECT_DELAY_MS / 1000)
+            # Таймеры uvloop (libuv) отсчитываются от времени, закэшированного в начале итерации
+            # цикла, и под нагрузкой срабатывают раньше. Поэтому досыпаем по реальным часам.
+            target = settings.INJECT_DELAY_MS / 1000
+            t_inj = time.perf_counter()
+            while (left := target - (time.perf_counter() - t_inj)) > 0:
+                await asyncio.sleep(left)
+            INJECTED.observe(time.perf_counter() - t_inj)
         return Response(content=body, media_type="video/iso.segment")
 
     return api

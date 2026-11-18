@@ -12,5 +12,5 @@ warmup_seconds: 15
 duration_seconds: 40
 randomize_order: true
 recreate_sut: true
-monitoring: false
+monitoring: true           # нужна гистограмма фактической задержки
 load: {level: 1, pacing_seconds: 4.0}

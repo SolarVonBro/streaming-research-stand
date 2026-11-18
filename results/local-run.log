@@ -30,3 +30,34 @@ local-e1: 20 прогонов
 [1/20] 000_arch-micro_users-75_r1_b4d934 ok (50 с, осталось ~45 мин)
 [2/20] 001_arch-mono_users-75_r3_c5b1ff ok (53 с, осталось ~35 мин)
 [3/20] 002_arch-mono_users-225_r4_1a6936 ok (50 с, осталось ~30 мин)
+[4/20] 003_arch-mono_users-75_r4_4778b5 ok (49 с, осталось ~26 мин)
+[5/20] 004_arch-micro_users-75_r3_83e615 ok (51 с, осталось ~25 мин)
+[6/20] 005_arch-mono_users-225_r0_401acb ok (53 с, осталось ~23 мин)
+[7/20] 006_arch-micro_users-225_r0_686c36 ok (59 с, осталось ~23 мин)
+[8/20] 007_arch-mono_users-225_r3_755571 ok (52 с, осталось ~21 мин)
+[9/20] 008_arch-micro_users-225_r2_39fc80 ok (56 с, осталось ~21 мин)
+[10/20] 009_arch-micro_users-225_r4_601be6 ok (55 с, осталось ~19 мин)
+[11/20] 010_arch-mono_users-75_r2_9f0e42 ok (49 с, осталось ~17 мин)
+[12/20] 011_arch-micro_users-75_r4_9dec90 ok (49 с, осталось ~15 мин)
+[13/20] 012_arch-mono_users-225_r1_ec4801 ok (51 с, осталось ~13 мин)
+[14/20] 013_arch-micro_users-75_r0_154dff ok (50 с, осталось ~11 мин)
+[15/20] 014_arch-mono_users-75_r0_f71fa6 ok (49 с, осталось ~9 мин)
+[16/20] 015_arch-mono_users-75_r1_f0e5ab ok (49 с, осталось ~7 мин)
+[17/20] 016_arch-micro_users-75_r2_d6d9e1 ok (51 с, осталось ~5 мин)
+[18/20] 017_arch-mono_users-225_r2_0a8277 ok (51 с, осталось ~3 мин)
+[19/20] 018_arch-micro_users-225_r1_0a0d76 ok (56 с, осталось ~2 мин)
+[20/20] 019_arch-micro_users-225_r3_d33533 ok (56 с, осталось ~0 мин)
+готово: 20 успешно, 0 с ошибками; данные в D:\work\streaming-research-stand\results\raw\local-e1
+PYTHONUTF8=1 .devtools/Scripts/uv.exe run --frozen python tools/prepare_data.py --verify
+data: OK
+PYTHONUTF8=1 .devtools/Scripts/uv.exe run --frozen python runner/run_experiment.py configs/local/local-e2.yaml
+local-e2: 5 прогонов
+[1/5] 000_network-hsdpa_hsdpa_017_r4_61e71a ok (181 с, осталось ~13 мин)
+[2/5] 001_network-hsdpa_hsdpa_013_r3_da7ff6 ok (188 с, осталось ~10 мин)
+[3/5] 002_network-hsdpa_hsdpa_014_r0_9f9265 ok (189 с, осталось ~7 мин)
+[4/5] 003_network-hsdpa_hsdpa_025_r2_9fc850 ok (181 с, осталось ~3 мин)
+[5/5] 004_network-hsdpa_hsdpa_015_r1_a6ba48 ok (186 с, осталось ~0 мин)
+готово: 5 успешно, 0 с ошибками; данные в D:\work\streaming-research-stand\results\raw\local-e2
+ Network stand_default  Removing
+ Network stand_default  Removed
+done 2026-11-18 20:14:26

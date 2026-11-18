@@ -173,6 +173,7 @@ def export_prometheus(start: float, end: float, out: Path) -> None:
         "server_p95_s": 'histogram_quantile(0.95, sum by (instance, le) (rate(http_request_duration_highr_seconds_bucket[30s])))',
         "auth_check_p50_s": 'histogram_quantile(0.5, sum by (instance, le) (rate(stand_auth_check_seconds_bucket[30s])))',
         "auth_check_p95_s": 'histogram_quantile(0.95, sum by (instance, le) (rate(stand_auth_check_seconds_bucket[30s])))',
+        "inject_p50_s": 'histogram_quantile(0.5, sum by (instance, le) (rate(stand_injected_delay_seconds_bucket[30s])))',
     }
     result = {"start": start, "end": end}
     for key, q in queries.items():

@@ -69,7 +69,7 @@
 
 ### 3.1. Тема 1: монолит и микросервисы
 
-**[1] Blinowski, Ojdowska, Przybyłek — IEEE Access, 2022**
+#### [1] Blinowski, Ojdowska, Przybyłek — IEEE Access, 2022
 
 | Поле | Содержание |
 |---|---|
@@ -86,7 +86,7 @@
 | Артефакты | Код: <https://github.com/annaojdowska/monolith-vs-microservices> ; сырые данные и скрипты R: <https://github.com/przybylek/Monolith-vs-Microservices> . Нет Dockerfile и планов JMeter |
 | Воспроизводимость | **2** — код и данные есть, окружение и сценарии нагрузки не зафиксированы |
 
-**[2] Berry, Castelltort, Lange и др. — IEEE ICWS, 2024**
+#### [2] Berry, Castelltort, Lange и др. — IEEE ICWS, 2024
 
 | Поле | Содержание |
 |---|---|
@@ -103,7 +103,7 @@
 | Артефакты | <https://github.com/ShellOnYou/SOY_loadTests> (сценарии Gatling, скрипты, результаты), <https://github.com/ShellOnYou/SOY_Monolith> и <https://github.com/ShellOnYou/SOY_MS_HTTP> (Dockerfile, docker-compose, package-lock) |
 | Воспроизводимость | **3** с оговорками — контейнеры, lock-файлы, скрипты и данные есть; нет тега версии «как в статье», энергия требует ваттметра |
 
-**[3] Faustino, Gonçalves, Portela, Rito Silva — Performance Evaluation, 2024**
+#### [3] Faustino, Gonçalves, Portela, Rito Silva — Performance Evaluation, 2024
 
 | Поле | Содержание |
 |---|---|
@@ -120,7 +120,7 @@
 | Артефакты | <https://github.com/socialsoftware/edition> (ветки master, modular-monolith, microservices; Dockerfile, docker-compose, pom.xml, планы JMeter). Результатов нет |
 | Воспроизводимость | **2** — код, контейнеры и сценарии есть, нет тега версии, скрипта прогона и данных |
 
-**[4] Bjørndal, Pires de Araújo, Bucchiarone и др. — Journal of Object Technology, 2021**
+#### [4] Bjørndal, Pires de Araújo, Bucchiarone и др. — Journal of Object Technology, 2021
 
 | Поле | Содержание |
 |---|---|
@@ -137,7 +137,7 @@
 | Артефакты | <https://github.com/NichlasBjorndal> (репозитории LibraryService-*: код, Dockerfile, манифесты Kubernetes, часть данных); планов JMeter нет |
 | Воспроизводимость | **2** |
 
-**[5] Eismann, Bezemer, Shang и др. — ACM/SPEC ICPE, 2020**
+#### [5] Eismann, Bezemer, Shang и др. — ACM/SPEC ICPE, 2020
 
 | Поле | Содержание |
 |---|---|
@@ -154,7 +154,7 @@
 | Артефакты | Zenodo, DOI 10.5281/zenodo.3582707 (скрипты, данные, анализ) |
 | Воспроизводимость | **3** — пакет прошёл рецензирование артефактов; но те версии GKE уже недоступны |
 
-**[6] Gan, Zhang, Cheng и др. — DeathStarBench, ACM ASPLOS, 2019**
+#### [6] Gan, Zhang, Cheng и др. — DeathStarBench, ACM ASPLOS, 2019
 
 | Поле | Содержание |
 |---|---|
@@ -171,7 +171,7 @@
 | Артефакты | <https://github.com/delimitrou/DeathStarBench> (docker-compose, Helm, wrk2) |
 | Воспроизводимость | **2** — сам бенчмарк контейнеризован, но эксперименты статьи повторить нельзя |
 
-**[7] Чикалева Ю. С. — Программные системы и вычислительные методы, 2025**
+#### [7] Чикалева Ю. С. — Программные системы и вычислительные методы, 2025
 
 | Поле | Содержание |
 |---|---|
@@ -190,7 +190,7 @@
 
 ### 3.2. Тема 2: алгоритмы адаптации битрейта
 
-**[8] Yin, Jindal, Sekar, Sinopoli — MPC, ACM SIGCOMM, 2015**
+#### [8] Yin, Jindal, Sekar, Sinopoli — MPC, ACM SIGCOMM, 2015
 
 | Поле | Содержание |
 |---|---|
@@ -207,7 +207,7 @@
 | Артефакты | Не опубликованы |
 | Воспроизводимость | **1** — методика и параметры описаны подробно, артефактов нет |
 
-**[9] Spiteri, Urgaonkar, Sitaraman — BOLA, IEEE/ACM ToN, 2020**
+#### [9] Spiteri, Urgaonkar, Sitaraman — BOLA, IEEE/ACM ToN, 2020
 
 | Поле | Содержание |
 |---|---|
@@ -224,7 +224,7 @@
 | Артефакты | Кода к статье нет; BOLA доступна в dash.js и Sabre; трассы 3G публичны |
 | Воспроизводимость | **2** |
 
-**[10] Mao, Netravali, Alizadeh — Pensieve, ACM SIGCOMM, 2017**
+#### [10] Mao, Netravali, Alizadeh — Pensieve, ACM SIGCOMM, 2017
 
 | Поле | Содержание |
 |---|---|
@@ -241,7 +241,7 @@
 | Артефакты | <https://github.com/hongzimao/pensieve> (MIT): симулятор, эталонные реализации MPC и BB, сегменты видео; трассы — по ссылке Dropbox |
 | Воспроизводимость | **2** — зависимости не закреплены, код на Python 2 |
 
-**[11] Jiang, Sekar, Zhang — FESTIVE, ACM CoNEXT, 2012**
+#### [11] Jiang, Sekar, Zhang — FESTIVE, ACM CoNEXT, 2012
 
 | Поле | Содержание |
 |---|---|
@@ -258,7 +258,7 @@
 | Артефакты | Нет (сторонняя реализация — в dash.js из [10]) |
 | Воспроизводимость | **1** |
 
-**[12] Spiteri, Sitaraman, Sparacio — Sabre, ACM TOMM, 2019**
+#### [12] Spiteri, Sitaraman, Sparacio — Sabre, ACM TOMM, 2019
 
 | Поле | Содержание |
 |---|---|
@@ -275,7 +275,7 @@
 | Артефакты | <https://github.com/UMass-LIDS/sabre> (BSD-2): код, трассы 3G и 4G, скрипты построения графиков |
 | Воспроизводимость | **2** (почти 3: нужна только стандартная библиотека Python, но версия не закреплена) |
 
-**[13] Xia, Zhou, Yan, Jiang — Genet, ACM SIGCOMM, 2022**
+#### [13] Xia, Zhou, Yan, Jiang — Genet, ACM SIGCOMM, 2022
 
 | Поле | Содержание |
 |---|---|
@@ -292,7 +292,7 @@
 | Артефакты | <https://github.com/GenetProject/Genet> : трассы, симулятор, эталонные MPC и BBA, скрипт установки с закреплёнными версиями, run.sh для каждого рисунка |
 | Воспроизводимость | **3** с оговорками — версии закреплены, но контейнера нет, модели во внешнем хранилище |
 
-**[14] Taraghi, Nguyen, Amirpour, Timmerer — INTENSE, IEEE Access, 2021**
+#### [14] Taraghi, Nguyen, Amirpour, Timmerer — INTENSE, IEEE Access, 2021
 
 | Поле | Содержание |
 |---|---|
@@ -309,7 +309,7 @@
 | Артефакты | Данные не опубликованы; инструменты открыты: <https://github.com/cd-athena/CAdViSE> , <https://github.com/itu-p1203/itu-p1203> |
 | Воспроизводимость | **1** |
 
-**[15] Bentaleb, Akcay, Lim и др. — LoL+, IEEE Transactions on Multimedia, 2022**
+#### [15] Bentaleb, Akcay, Lim и др. — LoL+, IEEE Transactions on Multimedia, 2022
 
 | Поле | Содержание |
 |---|---|
@@ -326,7 +326,7 @@
 | Артефакты | <https://github.com/NUStreaming/LoL-plus> (Apache-2.0): dash.js, сервер, скрипт запуска, package-lock.json |
 | Воспроизводимость | **2** — lock-файл есть, браузер, ОС и FFmpeg не закреплены |
 
-**[16] Wu, Wang, Qiao и др. — NetLLM, ACM SIGCOMM, 2024**
+#### [16] Wu, Wang, Qiao и др. — NetLLM, ACM SIGCOMM, 2024
 
 | Поле | Содержание |
 |---|---|
