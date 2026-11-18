@@ -107,9 +107,9 @@ def test_full_analysis(tmp_path):
     summary = (out / "processed" / "summary.md").read_text(encoding="utf-8")
     for section in ("E1.", "A/A-тест E1", "Калибровка", "E2.", "A/A-тест E2", "E3.", "Стабильность"):
         assert section in summary
-    for fig in ("e1_p95_box.png", "e1_ecdf.png", "aa_e1.png", "calibration.png", "e2_qoe_box.png",
-                "e2_components.png", "aa_e2.png", "e3_qoe_paired.png"):
+    for fig in ("e1-architecture_p95_box.png", "e1-architecture_ecdf.png", "aa_e1.png", "calibration.png",
+                "e2-abr_qoe_box.png", "e2-abr_components.png", "aa_e2.png", "e3_qoe_paired.png"):
         assert (out / "figures" / fig).exists(), fig
     data = json.loads((out / "processed" / "summary.json").read_text(encoding="utf-8"))
     # медиана micro заметно больше mono -> δ Клиффа положительная
-    assert all(r["δ Клиффа"] > 0 for r in data["e1_tests"])
+    assert all(r["δ Клиффа"] > 0 for r in data["e1-architecture_tests"])

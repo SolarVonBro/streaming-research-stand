@@ -1,0 +1,32 @@
+start 2026-11-18 19:19:55
+PYTHONUTF8=1 .devtools/Scripts/uv.exe run --frozen python runner/smoke.py --no-monitoring
+== mono
+  [OK] healthz через шлюз — {"status":"ok","role":"mono"}
+  [OK] создание сессии
+  [OK] манифест MPD
+  [OK] сегмент уровня 5 (4300 кбит/с) — 2354772 байт
+  [OK] сегмент детерминирован
+  [OK] без токена — 401
+  [OK] чужой токен — 401
+  [OK] телеметрия
+  [OK] внутренний API закрыт снаружи
+  [OK] метрики Prometheus в app
+== micro
+  [OK] healthz через шлюз — {"status":"ok","role":"delivery"}
+  [OK] создание сессии
+  [OK] манифест MPD
+  [OK] сегмент уровня 5 (4300 кбит/с) — 2354772 байт
+  [OK] сегмент детерминирован
+  [OK] без токена — 401
+  [OK] чужой токен — 401
+  [OK] телеметрия
+  [OK] внутренний API закрыт снаружи
+  [OK] метрики Prometheus в delivery
+SMOKE: пройден
+PYTHONUTF8=1 .devtools/Scripts/uv.exe run --frozen python tools/prepare_data.py --verify
+data: OK
+PYTHONUTF8=1 .devtools/Scripts/uv.exe run --frozen python runner/run_experiment.py configs/local/local-e1.yaml
+local-e1: 20 прогонов
+[1/20] 000_arch-micro_users-75_r1_b4d934 ok (50 с, осталось ~45 мин)
+[2/20] 001_arch-mono_users-75_r3_c5b1ff ok (53 с, осталось ~35 мин)
+[3/20] 002_arch-mono_users-225_r4_1a6936 ok (50 с, осталось ~30 мин)

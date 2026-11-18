@@ -257,8 +257,8 @@ def summarize_groups(df: pd.DataFrame, keys: list[str], metric: str) -> pd.DataF
     return pd.DataFrame(rows)
 
 
-def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
-    rep.h("E1. Архитектура сервера под нагрузкой (монолит vs микросервисы)")
+def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path, name: str = "e1-architecture") -> None:
+    rep.h(f"E1. Архитектура сервера под нагрузкой (монолит vs микросервисы) — `{name}`")
     for metric, title in (("p95_ms", "p95 задержки сегмента, мс"), ("p50_ms", "p50 задержки сегмента, мс"),
                           ("p99_ms", "p99 задержки сегмента, мс"),
                           ("rps", "пропускная способность, запросов/с"), ("error_rate", "доля ошибок"),
@@ -289,7 +289,7 @@ def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
     rep.p("**Проверка H1₀ (p95 не зависит от архитектуры)** — тест Манна–Уитни, двусторонний, "
           "поправка Холма на два уровня нагрузки:")
     rep.table(res)
-    rep.data["e1_tests"] = res.to_dict(orient="records")
+    rep.data[f"{name}_tests"] = res.to_dict(orient="records")
     # взаимодействие: растёт ли относительный проигрыш с нагрузкой
     ratios = {}
     for users, g in df.groupby("users"):
@@ -300,7 +300,7 @@ def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
         ratios[users] = (np.median(b) / np.median(a), np.percentile(boots, 2.5), np.percentile(boots, 97.5))
     rep.p("**Отношение медиан p95 micro/mono** (bootstrap 95 % ДИ): " + "; ".join(
         f"{u} зрителей — {r[0]:.2f} {fmt_ci(r[1], r[2], '{:.2f}')}" for u, r in ratios.items()))
-    rep.data["e1_ratios"] = {str(k): v for k, v in ratios.items()}
+    rep.data[f"{name}_ratios"] = {str(k): v for k, v in ratios.items()}
 
     levels = sorted(df["users"].unique())
     fig, ax = plt.subplots(figsize=(7, 4))
@@ -315,11 +315,11 @@ def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
     boxes(ax, groups, pos, cols)
     ax.set_xticks(ticks, tlabels)
     ax.set_ylabel("p95 задержки сегмента за прогон, мс")
-    ax.set_title("E1: p95 по прогонам (точка = прогон)")
+    ax.set_title(f"{name}: p95 по прогонам (точка = прогон)")
     for arch in ("mono", "micro"):
         ax.scatter([], [], color=ARCH_COLOR[arch], label=ARCH_LABEL[arch])
     ax.legend(loc="upper left")
-    save(fig, fig_dir / "e1_p95_box.png")
+    save(fig, fig_dir / f"{name}_p95_box.png")
 
 
 def ecdf_plot(runs: list[tuple[Path, dict]], fig_dir: Path, name: str, title: str) -> None:
@@ -460,13 +460,13 @@ def paired_table(df: pd.DataFrame, metric: str, algos: list[str]) -> pd.DataFram
     return pd.DataFrame(rows)
 
 
-def analyze_e2(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
-    rep.h("E2. Алгоритмы адаптации битрейта")
+def analyze_e2(df: pd.DataFrame, rep: Report, fig_dir: Path, name: str = "e2-abr") -> None:
+    rep.h(f"E2. Алгоритмы адаптации битрейта — `{name}`")
     algos = [a for a in ABR_ORDER if a in set(df["abr"])]
     metrics = [("qoe", "QoE_lin на сегмент"), ("bitrate_kbps", "средний битрейт, кбит/с"),
                ("rebuffer_ratio_pct", "доля ребуферизации, %"), ("switches", "число переключений"),
                ("startup_s", "начальная задержка, с")]
-    rep.data["e2"] = {}
+    rep.data[name] = {}
     for net in sorted(df["network"].unique()):
         g = df[df["network"] == net]
         rep.p(f"### Профиль сети «{net}» (трасс: {g['trace'].nunique()})")
@@ -488,7 +488,7 @@ def analyze_e2(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
         for m, title in metrics[:4]:
             rep.p(f"Попарные сравнения: **{title}** (Уилкоксон для связанных выборок, поправка Холма на 6 пар):")
             rep.table(paired_table(g, m, algos))
-        rep.data["e2"][net] = {"friedman_p": None if fr is None else float(fr.pvalue),
+        rep.data[name][net] = {"friedman_p": None if fr is None else float(fr.pvalue),
                                "qoe_paired": paired_table(g, "qoe", algos).to_dict(orient="records"),
                                "medians": rows}
 
@@ -503,7 +503,7 @@ def analyze_e2(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
               [ABR_COLOR[a] for a in algos], [ABR_LABEL[a] for a in algos])
         ax.set_title(f"сеть «{net}»: QoE по сессиям (линия = трасса)")
     axes[0][0].set_ylabel("QoE_lin на сегмент")
-    save(fig, fig_dir / "e2_qoe_box.png")
+    save(fig, fig_dir / f"{name}_qoe_box.png")
 
     fig, axes = plt.subplots(3, len(nets), figsize=(5 * len(nets), 8), squeeze=False)
     for col, net in enumerate(nets):
@@ -515,16 +515,17 @@ def analyze_e2(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
             ax.set_ylabel(title)
             if row == 0:
                 ax.set_title(f"сеть «{net}»")
-    save(fig, fig_dir / "e2_components.png")
+    save(fig, fig_dir / f"{name}_components.png")
 
 
-def timeline_plot(runs: list[tuple[Path, dict]], fig_dir: Path) -> None:
+def timeline_plot(runs: list[tuple[Path, dict]], fig_dir: Path, name: str = "e2-abr") -> None:
     """Иллюстрация поведения алгоритмов на одной трассе LTE (первый по порядку прогон)."""
-    cand = [(r, m) for r, m in runs if m["params"].get("network") == "lte" and m["status"] == "ok"]
+    cand = [(r, m) for r, m in runs if m["params"].get("network") in ("hsdpa", "lte") and m["status"] == "ok"]
     if not cand:
         return
-    run, m = sorted(cand, key=lambda x: x[1]["params"]["trace"])[0]
-    trace = pd.read_csv(ROOT / m["params"]["trace"])
+    run, m = sorted(cand, key=lambda x: (x[1]["params"]["network"] != "hsdpa", x[1]["params"]["trace"]))[0]
+    trace_file = ROOT / m["params"]["trace"]
+    trace = pd.read_csv(trace_file) if trace_file.exists() else pd.DataFrame({"t_s": [], "mbps": []})
     files = sorted(run.glob("segments_*.csv"))
     fig, axes = plt.subplots(len(files), 1, figsize=(8, 1.9 * len(files)), sharex=True, squeeze=False)
     for ax, f in zip(axes[:, 0], files, strict=True):
@@ -541,7 +542,7 @@ def timeline_plot(runs: list[tuple[Path, dict]], fig_dir: Path) -> None:
         ax.legend(loc="upper right", fontsize=8, ncols=2)
     axes[-1, 0].set_xlabel("время сессии, с (заливка — загрузка с остановкой)")
     fig.suptitle(f"Поведение алгоритмов на трассе {Path(m['params']['trace']).stem}", fontsize=11)
-    save(fig, fig_dir / "e2_timeline.png")
+    save(fig, fig_dir / f"{name}_timeline.png")
 
 
 def analyze_aa_players(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
@@ -639,7 +640,6 @@ def main() -> None:
     stab = {}
     for name, runs in exps.items():
         kind = runs[0][1]["kind"]
-        base = name.split("-")[0] if not name.startswith("ci-") else name
         if kind == "load":
             rows = [r for r in (load_run_row(run, m) for run, m in runs) if r]
             df = pd.DataFrame(rows)
@@ -652,8 +652,8 @@ def main() -> None:
             elif name.startswith("aa"):
                 analyze_aa_load(df, rep, fig_dir)
             else:
-                analyze_e1(df, rep, fig_dir)
-                ecdf_plot(runs, fig_dir, f"{base}_ecdf.png", "E1: ECDF задержки сегмента (все прогоны конфигурации)")
+                analyze_e1(df, rep, fig_dir, name)
+                ecdf_plot(runs, fig_dir, f"{name}_ecdf.png", f"{name}: ECDF задержки сегмента (все прогоны конфигурации)")
             generator_check(df, "gen_cpu_max_frac", rep, name)
             keys = [k for k in ("arch", "users", "inject_delay_ms") if k in df.columns]
             stab[name] = stability(df, keys, "p95_ms", rep, fig_dir, f"{name}_stability.png",
@@ -670,8 +670,8 @@ def main() -> None:
                 bg.to_csv(processed / f"{name}_background.csv", index=False)
                 analyze_e3(ok, bg, rep, fig_dir)
             else:
-                analyze_e2(ok, rep, fig_dir)
-                timeline_plot(runs, fig_dir)
+                analyze_e2(ok, rep, fig_dir, name)
+                timeline_plot(runs, fig_dir, name)
             gen = ok.groupby("run_id")[["gen_cpu_max_frac", "gen_cpu_share_core", "order"]].max().reset_index()
             generator_check(gen, "gen_cpu_max_frac", rep, name)
             keys = [k for k in ("arch", "abr", "network", "player") if k in ok.columns]
