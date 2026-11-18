@@ -1,0 +1,9 @@
+# окружения
+.venv/
+.devtools/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# сырые данные прогонов: публикуются архивом в GitHub Releases (см. README)
+results/raw/

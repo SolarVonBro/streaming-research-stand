@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Метрики приложения (prometheus-fastapi-instrumentator). Цели недоступного варианта
+  # архитектуры просто помечаются как down — это ожидаемо.
+  - job_name: streamhub
+    static_configs:
+      - targets: ["app:8000", "auth:8000", "catalog:8000", "delivery:8000", "telemetry:8000"]
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]

@@ -1,0 +1,15 @@
+# A/A для E2: один и тот же алгоритм (BOLA) дважды в каждом прогоне, одна и та же трасса,
+# 10 повторений. Разница QoE между «близнецами» и разброс между прогонами — шум стенда.
+name: aa-e2
+kind: abr
+seed: 20261119
+fixed: {arch: mono, network: hsdpa}
+traces: {hsdpa: data/traces/hsdpa}
+trace_mode: fixed
+trace_index: 0
+repetitions: 10
+abr: [bola, bola]
+randomize_order: true
+recreate_sut: true
+monitoring: false
+players: {buffer_max_s: 30, rtt_ms: 80, max_segments: 48}

@@ -1,0 +1,57 @@
+# Независимая проверка на каждый push: тесты, smoke-тест стенда и сокращённый эксперимент.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@887a942a15af3a7626099df99e897a18d9e5ab3a # v5.1.0
+        with:
+          version: "0.5.11"
+      - name: Линтер, проверка данных, модульные тесты
+        run: make test
+
+  stand:
+    needs: tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/setup-uv@887a942a15af3a7626099df99e897a18d9e5ab3a # v5.1.0
+        with:
+          version: "0.5.11"
+      - name: Машина раннера
+        run: |
+          nproc; free -h; docker version --format '{{.Server.Version}}'; docker compose version
+      - name: Smoke-тест (оба варианта архитектуры)
+        run: make smoke
+      - name: Сокращённый эксперимент (E1 и E2)
+        run: make ci-experiment
+      - name: Анализ
+        run: |
+          make analyze
+          cat results/processed/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Остановка стенда
+        if: always()
+        run: make down
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        if: always()
+        with:
+          name: ci-results
+          path: results/
+          retention-days: 30

@@ -1,0 +1,17 @@
+# E1 (ВКР Голиенко Р.): модульный монолит vs микросервисы под нагрузкой «зрителей».
+# Полный факторный план 2 × 2, 10 повторений, порядок рандомизирован сидом.
+name: e1-architecture
+kind: load
+seed: 20261118
+factors:
+  arch: [mono, micro]
+  users: [300, 900]        # ~50 % и ~90 % ёмкости монолита по пилоту (configs/pilot-e1.yaml)
+repetitions: 10
+warmup_seconds: 20         # прогрев внутри прогона, статистика Locust сбрасывается
+duration_seconds: 60       # окно измерения
+randomize_order: true
+recreate_sut: true
+monitoring: true
+load:
+  level: 1                 # 750 кбит/с, ~375 КБ на сегмент
+  pacing_seconds: 4.0      # длительность сегмента: 2 запроса на зрителя за 4 с

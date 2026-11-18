@@ -1,0 +1,14 @@
+# Сокращённый E2 для CI: 3 трассы HSDPA, первые 10 сегментов видео.
+name: ci-e2
+kind: abr
+seed: 20261118
+factors:
+  network: [hsdpa]
+traces: {hsdpa: data/traces/hsdpa}
+repetitions: 3
+abr: [rate, bola, robustmpc, festive]
+randomize_order: true
+recreate_sut: true
+monitoring: false
+fixed: {arch: mono}
+players: {buffer_max_s: 30, rtt_ms: 80, max_segments: 10}

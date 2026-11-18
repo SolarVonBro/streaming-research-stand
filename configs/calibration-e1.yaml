@@ -1,0 +1,16 @@
+# Калибровка на известном результате: в выдачу сегмента вносится задержка 0 или 20 мс.
+# Стенд обязан показать рост медианы задержки сегмента на ~20 мс при умеренной нагрузке.
+name: calibration-e1
+kind: load
+seed: 20261120
+factors:
+  arch: [mono]
+  users: [300]
+  inject_delay_ms: [0, 20]
+repetitions: 5
+warmup_seconds: 15
+duration_seconds: 40
+randomize_order: true
+recreate_sut: true
+monitoring: false
+load: {level: 1, pacing_seconds: 4.0}

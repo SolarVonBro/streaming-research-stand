@@ -1,0 +1,17 @@
+# E3 (совместный вопрос): влияет ли архитектура сервера под высокой нагрузкой на QoE зрителей.
+# Фон — Locust (900 зрителей), измеряют плееры rate и BOLA на трассах 3G HSDPA. Парный план по трассам.
+name: e3-joint
+kind: joint
+seed: 20261121
+factors:
+  arch: [mono, micro]
+traces: {hsdpa: data/traces/hsdpa}
+fixed: {network: hsdpa}
+repetitions: 10
+abr: [rate, bola]
+warmup_seconds: 20
+randomize_order: true
+recreate_sut: true
+monitoring: true
+background: {users: 900, level: 1, pacing_seconds: 4.0}
+players: {buffer_max_s: 30, rtt_ms: 80, max_segments: 48}

@@ -1,0 +1,22 @@
+# E2 (ВКР Митеневой С.): сравнение алгоритмов адаптации битрейта.
+# В каждом прогоне 4 плеера (по одному на алгоритм) одновременно проигрывают видео по одной
+# и той же трассе — парный план. Повторения = 10 разных трасс на каждый профиль сети.
+name: e2-abr
+kind: abr
+seed: 20261118
+factors:
+  network: [stable, hsdpa, lte]
+traces:
+  stable: data/traces/stable     # синтетика 3–6 Мбит/с, шум 5 % («стабильная сеть»)
+  hsdpa: data/traces/hsdpa       # 3G Norway HSDPA, нарезка Pensieve/Genet (как в статьях)
+  lte: data/traces/lte           # реальные 4G/LTE (van der Hooft 2016), масштаб 1:10
+repetitions: 10
+abr: [rate, bola, robustmpc, festive]
+randomize_order: true
+recreate_sut: true
+monitoring: true
+fixed: {arch: mono}
+players:
+  buffer_max_s: 30
+  rtt_ms: 80
+  max_segments: 48               # всё видео: 48 × 4 с = 192 с

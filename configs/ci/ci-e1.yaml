@@ -1,0 +1,14 @@
+# Сокращённый E1 для CI: проверяет, что весь конвейер работает, а не гипотезу.
+name: ci-e1
+kind: load
+seed: 20261118
+factors:
+  arch: [mono, micro]
+  users: [100]
+repetitions: 3
+warmup_seconds: 5
+duration_seconds: 15
+randomize_order: true
+recreate_sut: true
+monitoring: true
+load: {level: 1, pacing_seconds: 4.0}

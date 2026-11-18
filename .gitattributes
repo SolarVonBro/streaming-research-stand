@@ -1,0 +1,7 @@
+# Единые переводы строк на всех ОС: иначе на Windows (core.autocrlf) CSV-данные
+# получат CRLF и не сойдутся с data/SHA256SUMS, а Makefile и sh-скрипты сломаются.
+* text=auto eol=lf
+data/** -text
+*.png binary
+*.pdf binary
+*.gz binary

@@ -1,0 +1,165 @@
+# Экспериментальный стенд «платформа потокового видео MPEG-DASH».
+# Профили: mono | micro — вариант архитектуры SUT; monitoring — Prometheus + cAdvisor;
+# dashboards — Grafana; tools — генераторы воздействия (запускаются раннером через `run`).
+# Все образы закреплены по тегу и digest. Лимиты ресурсов задаются переменными окружения
+# (значения по умолчанию — для раннера GitHub Actions, 4 vCPU / 16 ГБ); раннер пишет их в манифест.
+name: stand
+
+x-app: &app
+  build: ./sut
+  image: streamhub:local
+  volumes: ["./data:/data:ro"]
+  environment: &app-env
+    REDIS_URL: redis://redis:6379/0
+    INJECT_DELAY_MS: ${INJECT_DELAY_MS:-0}
+  depends_on:
+    redis: { condition: service_healthy }
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+
+x-edge: &edge
+  image: nginx:1.27.3-alpine@sha256:814a8e88df978ade80e584cc5b333144b9372a8e3c98872d07137dbf3b44d0e4
+  ports: ["127.0.0.1:${EDGE_PORT:-8080}:8080"]
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+  deploy:
+    resources:
+      limits: { cpus: "${EDGE_CPUS:-0.25}", memory: 64m }
+
+services:
+  redis:
+    image: redis:7.4.1-alpine@sha256:c1e88455c85225310bbea54816e9c3f4b5295815e6dbf80c34d40afc6df28275
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    deploy:
+      resources:
+        limits: { cpus: "${REDIS_CPUS:-0.5}", memory: 256m }
+
+  # ---------- вариант 1: модульный монолит ----------
+  app:
+    <<: *app
+    profiles: ["mono"]
+    environment:
+      <<: *app-env
+      ROLE: mono
+      WORKERS: ${APP_WORKERS:-2}
+    deploy:
+      resources:
+        limits: { cpus: "${APP_CPUS:-1.75}", memory: 512m }
+
+  edge-mono:
+    <<: *edge
+    profiles: ["mono"]
+    volumes: ["./gateway/mono.conf:/etc/nginx/nginx.conf:ro"]
+    networks: { default: { aliases: ["edge"] } }
+    depends_on:
+      app: { condition: service_healthy }
+
+  # ---------- вариант 2: микросервисы за API-шлюзом ----------
+  auth:
+    <<: *app
+    profiles: ["micro"]
+    environment: { <<: *app-env, ROLE: auth }
+    deploy:
+      resources:
+        limits: { cpus: "${AUTH_CPUS:-0.5}", memory: 128m }
+
+  catalog:
+    <<: *app
+    profiles: ["micro"]
+    environment: { <<: *app-env, ROLE: catalog }
+    deploy:
+      resources:
+        limits: { cpus: "${CATALOG_CPUS:-0.15}", memory: 128m }
+
+  delivery:
+    <<: *app
+    profiles: ["micro"]
+    environment: { <<: *app-env, ROLE: delivery, AUTH_URL: "http://auth:8000" }
+    depends_on:
+      redis: { condition: service_healthy }
+      auth: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { cpus: "${DELIVERY_CPUS:-0.75}", memory: 128m }
+
+  telemetry:
+    <<: *app
+    profiles: ["micro"]
+    environment: { <<: *app-env, ROLE: telemetry }
+    deploy:
+      resources:
+        limits: { cpus: "${TELEMETRY_CPUS:-0.35}", memory: 128m }
+
+  edge-micro:
+    <<: *edge
+    profiles: ["micro"]
+    volumes: ["./gateway/micro.conf:/etc/nginx/nginx.conf:ro"]
+    networks: { default: { aliases: ["edge"] } }
+    depends_on:
+      auth: { condition: service_healthy }
+      catalog: { condition: service_healthy }
+      delivery: { condition: service_healthy }
+      telemetry: { condition: service_healthy }
+
+  # ---------- наблюдение ----------
+  prometheus:
+    image: prom/prometheus:v2.54.1@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94
+    profiles: ["monitoring"]
+    volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["127.0.0.1:9090:9090"]
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 256m }
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1@sha256:3cde6faf0791ebf7b41d6f8ae7145466fed712ea6f252c935294d2608b1af388
+    profiles: ["monitoring"]
+    privileged: true
+    command: ["--docker_only=true", "--housekeeping_interval=2s", "--store_container_labels=false",
+              "--whitelisted_container_labels=com.docker.compose.service"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 192m }
+
+  grafana:
+    image: grafana/grafana:11.2.0@sha256:408afb9726de5122b00a2576763a8a57a3c86d5b0eff5305bc994ceb3eb96c3f
+    profiles: ["dashboards"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes: ["./monitoring/grafana:/etc/grafana/provisioning:ro"]
+    ports: ["127.0.0.1:3000:3000"]
+
+  # ---------- источники воздействия ----------
+  load:
+    image: locustio/locust:2.31.5@sha256:d9f2fe8899e3cc924b17afcdda25e1cbd4164955e06bac208cecf6aefea0a685
+    profiles: ["tools"]
+    volumes: ["./load:/mnt/locust:ro", "./results:/results"]
+    deploy:
+      resources:
+        limits: { cpus: "${LOAD_CPUS:-1.0}", memory: 512m }
+
+  players:
+    build: ./players
+    image: players:local
+    profiles: ["tools"]
+    volumes: ["./data:/data:ro", "./results:/results"]
+    deploy:
+      resources:
+        limits: { cpus: "${PLAYERS_CPUS:-0.5}", memory: 256m }

@@ -1,0 +1,15 @@
+# A/A для E1: 10 прогонов одной конфигурации (монолит, высокая нагрузка).
+# Анализ случайно делит прогоны на две группы по 5 — значимой разницы быть не должно.
+name: aa-e1
+kind: load
+seed: 20261119
+factors:
+  arch: [mono]
+  users: [900]
+repetitions: 10
+warmup_seconds: 20
+duration_seconds: 60
+randomize_order: true
+recreate_sut: true
+monitoring: true
+load: {level: 1, pacing_seconds: 4.0}

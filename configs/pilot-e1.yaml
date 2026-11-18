@@ -1,0 +1,15 @@
+# Пилот для выбора уровней нагрузки E1: ступени числа зрителей, по 1 прогону.
+# Не входит в проверку гипотез — только для калибровки плана.
+name: pilot-e1
+kind: load
+seed: 20261117
+factors:
+  arch: [mono, micro]
+  users: [150, 300, 600, 900, 1200, 1800]
+repetitions: 1
+warmup_seconds: 15
+duration_seconds: 30
+randomize_order: false
+recreate_sut: true
+monitoring: false
+load: {level: 1, pacing_seconds: 4.0}
