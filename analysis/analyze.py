@@ -93,9 +93,11 @@ def load_run_row(run: Path, m: dict) -> dict | None:
         req = pd.read_csv(f)
     seg = req[req["name"] == "/media/[segment]"]
     window = m.get("measure_window", {})
-    dur = (window.get("to_s", 0) - window.get("from_s", 0)) or m["timing"].get("duration_s") or 1
+    # E3 (фон) не имеет заданного окна: длительность — по отметкам времени самих запросов
+    span = float(req["t_s"].max() - req["t_s"].min()) if len(req) > 1 else 0.0
+    dur = (window.get("to_s", 0) - window.get("from_s", 0)) or m["timing"].get("duration_s") or span or 1
     res = m["resources"]
-    load_mean, load_max = container_cpu(run, r"load-run")
+    load_mean, load_max = container_cpu(run, r"load-run|stand-bg-")  # фон E3 запускается с именем stand-bg-*
     sut_pat = r"stand-(app|auth|catalog|delivery|telemetry|edge-mono|edge-micro)-"
     sut_mean, _ = container_cpu(run, sut_pat)
     row = {
@@ -315,7 +317,10 @@ def analyze_e1(df: pd.DataFrame, rep: Report, fig_dir: Path, name: str = "e1-arc
         tlabels.append(f"{u} зрителей")
     boxes(ax, groups, pos, cols)
     ax.set_xticks(ticks, tlabels)
-    ax.set_ylabel("p95 задержки сегмента за прогон, мс")
+    if max(max(g) for g in groups if len(g)) / max(min(min(g) for g in groups if len(g)), 1e-9) > 20:
+        ax.set_yscale("log")  # значения различаются на порядки
+    ax.set_ylabel("p95 задержки сегмента за прогон, мс (лог. шкала)" if ax.get_yscale() == "log"
+                  else "p95 задержки сегмента за прогон, мс")
     ax.set_title(f"{name}: p95 по прогонам (точка = прогон)")
     for arch in ("mono", "micro"):
         ax.scatter([], [], color=ARCH_COLOR[arch], label=ARCH_LABEL[arch])
@@ -400,22 +405,26 @@ def analyze_aa_load(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
 
 def analyze_calibration(df: pd.DataFrame, rep: Report, fig_dir: Path) -> None:
     rep.h("Калибровка: внесённая задержка 20 мс")
-    a = df[df["inject_delay_ms"] == 0]["p50_ms"]
-    b = df[df["inject_delay_ms"] == 20]["p50_ms"]
-    diff, lo, hi = st.boot_diff_median(a, b, seed=SEED)
-    rep.table(pd.DataFrame([{"n (0 мс)": len(a), "n (20 мс)": len(b), "медиана p50 при 0 мс": a.median(),
-                             "медиана p50 при 20 мс": b.median(), "Δ, мс": diff, "95 % ДИ Δ": fmt_ci(lo, hi),
-                             "p (M–W)": st.mann_whitney(a, b)}]))
-    rep.p("Стенд считается откалиброванным, если 95 % ДИ разности медиан p50 содержит 20 мс "
-          "(эффект известен заранее).")
-    if "inject_p50_ms" in df.columns:
-        inj = df[df["inject_delay_ms"] == 20]["inject_p50_ms"]
-        rep.p(f"Фактическая длительность внесённой задержки по серверной гистограмме: медиана {inj.median():.2f} мс.")
-    rep.data["calibration"] = {"diff_ms": diff, "ci": [lo, hi]}
-    fig, ax = plt.subplots(figsize=(4.5, 3.6))
-    boxes(ax, [a.to_numpy(), b.to_numpy()], [0, 1], [C["blue"], C["orange"]], ["0 мс", "+20 мс"])
-    ax.set_ylabel("p50 задержки сегмента, мс")
-    ax.set_title(f"Калибровка: Δ = {diff:.1f} мс")
+    rows, groups, labels = [], [], []
+    for users, g in df.groupby("users"):
+        a = g[g["inject_delay_ms"] == 0]["p50_ms"]
+        b = g[g["inject_delay_ms"] == 20]["p50_ms"]
+        diff, lo, hi = st.boot_diff_median(a, b, seed=SEED)
+        inj = g[g["inject_delay_ms"] == 20]["inject_p50_ms"].median() if "inject_p50_ms" in g else float("nan")
+        rows.append({"зрителей": users, "n (0 / 20 мс)": f"{len(a)} / {len(b)}", "медиана p50 при 0 мс": a.median(),
+                     "медиана p50 при 20 мс": b.median(), "Δ, мс": diff, "95 % ДИ Δ": fmt_ci(lo, hi),
+                     "фактическая задержка, мс": inj, "p (M–W)": st.mann_whitney(a, b)})
+        groups += [a.to_numpy(), b.to_numpy()]
+        labels += [f"{users}: 0 мс", f"{users}: +20 мс"]
+        rep.data.setdefault("calibration", {})[str(users)] = {"diff_ms": diff, "ci": [lo, hi], "actual_ms": inj}
+    rep.table(pd.DataFrame(rows))
+    rep.p("Стенд откалиброван, если 95 % ДИ прироста медианы p50 содержит фактическую внесённую задержку "
+          "(эффект известен заранее). Фактическая задержка измеряется на сервере по реальным часам.")
+    fig, ax = plt.subplots(figsize=(6.5, 3.8))
+    cols = [C["blue"], C["orange"]] * (len(groups) // 2)
+    boxes(ax, groups, list(range(len(groups))), cols, labels)
+    ax.set_ylabel("p50 задержки сегмента за прогон, мс")
+    ax.set_title("Калибровка: внесённая задержка 20 мс")
     save(fig, fig_dir / "calibration.png")
 
 
